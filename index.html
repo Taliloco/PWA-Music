@@ -3,15 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproductor PWA</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
+    <title>PWA MP3 Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin: 5px 0;
+            cursor: pointer;
+        }
+        button {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+        }
+        #nowPlaying {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
 </head>
 <body>
     <h1>Reproductor MP3</h1>
-    <input type="file" id="fileInput" accept="audio/*" multiple>
-    <ul id="playlist"></ul>
+    <input type="file" id="fileInput" multiple accept="audio/mpeg">
+    <p id="nowPlaying">No hay ninguna canción reproduciéndose</p>
+    <ul id="fileList"></ul>
     <audio id="audioPlayer" controls></audio>
-    <script src="app.js"></script>
+
+    <script>
+        let audioFiles = [];
+        let currentIndex = 0;
+
+        const fileInput = document.getElementById("fileInput");
+        const fileList = document.getElementById("fileList");
+        const audioPlayer = document.getElementById("audioPlayer");
+        const nowPlaying = document.getElementById("nowPlaying");
+
+        fileInput.addEventListener("change", (event) => {
+            const files = event.target.files;
+            for (let file of files) {
+                if (file.type === "audio/mpeg") {
+                    const url = URL.createObjectURL(file);
+                    audioFiles.push({ name: file.name, url });
+                }
+            }
+            updatePlaylist();
+        });
+
+        function updatePlaylist() {
+            fileList.innerHTML = "";
+            audioFiles.forEach((file, index) => {
+                const li = document.createElement("li");
+                li.textContent = file.name;
+                li.onclick = () => playAudio(index); 
+                
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "❌";
+                deleteBtn.onclick = (event) => {
+                    event.stopPropagation(); 
+                    removeFile(index);
+                };
+                
+                li.appendChild(deleteBtn);
+                fileList.appendChild(li);
+            });
+        }
+
+        function playAudio(index) {
+            if (audioFiles.length === 0) return;
+            currentIndex = index;
+            audioPlayer.src = audioFiles[currentIndex].url;
+            audioPlayer.play();
+            nowPlaying.textContent = `Reproduciendo: ${audioFiles[currentIndex].name}`;
+        }
+
+        function removeFile(index) {
+            audioFiles.splice(index, 1);
+            updatePlaylist();
+            if (index === currentIndex) {
+                if (audioFiles.length > 0) {
+                    playAudio(index < audioFiles.length ? index : 0);
+                } else {
+                    audioPlayer.pause();
+                    audioPlayer.src = "";
+                    nowPlaying.textContent = "No hay ninguna canción reproduciéndose";
+                }
+            }
+        }
+
+        audioPlayer.addEventListener("ended", () => {
+            if (currentIndex < audioFiles.length - 1) {
+                playAudio(currentIndex + 1);
+            } else {
+                nowPlaying.textContent = "No hay ninguna canción reproduciéndose";
+            }
+        });
+    </script>
 </body>
 </html>
